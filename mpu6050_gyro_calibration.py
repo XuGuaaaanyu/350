@@ -18,9 +18,11 @@ t0 = time.time()
 start_bool = False # if IMU start fails - stop calibration
 while time.time()-t0<5:
     try: 
+        print("try to coonect to IMU")
         from mpu6050 import mpu6050
-        sensor = mpu6050(0x68)
+        sensor = mpu6050.mpu6050(0x68)
         start_bool = True
+
         break
     except:
         continue
@@ -72,6 +74,7 @@ if __name__ == '__main__':
         gyro_labels = ['w_x','w_y','w_z'] # gyro labels for plots
         cal_size = 500 # points to use for calibration
         gyro_offsets = gyro_cal() # calculate gyro offsets
+        print("Gyro Offsets: ",gyro_offsets)
         #
         ###################################
         # Record new data 

@@ -39,7 +39,7 @@ def accel_fit(x_input,m_x,b):
     return (m_x*x_input)+b # fit equation for accel calibration
 #
 def get_accel():
-    accel_data = sensor.get_accel_data()
+    accel_data = sensor.get_accel_data(g=True) # get accel data
     return accel_data['x'],accel_data['y'],accel_data['z']
     
 def accel_cal():
@@ -60,6 +60,7 @@ def accel_cal():
             while len(mpu_array)<cal_size:
                 try:
                     ax,ay,az = get_accel()
+                    print("ax: {0:2.2f}, ay: {1:2.2f}, az: {2:2.2f}".format(ax,ay,az),end='\r')
                     mpu_array.append([ax,ay,az]) # append to array
                 except:
                     continue
@@ -72,6 +73,7 @@ def accel_cal():
                     -1.0*np.ones(np.shape(ax_offsets[1]))),
                         0.0*np.ones(np.shape(ax_offsets[2]))),
                             maxfev=10000)
+        print("Calibration Coefficients for the -"+ax_qq+"-axis: ",popts)
         mpu_offsets[cal_indices[qq]] = popts # place slope and intercept in offset array
     print('Accelerometer Calibrations Complete')
     return mpu_offsets
@@ -88,6 +90,7 @@ if __name__ == '__main__':
         accel_labels = ['a_x','a_y','a_z'] # gyro labels for plots
         cal_size = 1000 # number of points to use for calibration 
         accel_coeffs = accel_cal() # grab accel coefficients
+        print("Accelerometer Coefficients: ",accel_coeffs)
 #
         ###################################
         # Record new data 
