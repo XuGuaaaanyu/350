@@ -4,7 +4,7 @@ import numpy as np
 
 DELTA_T = 0.01 # sampling time
 
-sensor = mpu6050(0x68)
+sensor = mpu6050.mpu6050(0x68)
 
 
 def get_orientation():
