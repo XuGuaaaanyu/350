@@ -1,3 +1,5 @@
+#Written by GPT, to be modified.
+
 import time
 import math
 import RPi.GPIO as GPIO
