@@ -1,5 +1,3 @@
-#Motor control library. 
-#This library is used to control the speed and direction of the motors.
 
 import RPi.GPIO as GPIO
 import time 
@@ -12,21 +10,25 @@ GPIO.setmode(GPIO.BCM)
 
 myMotor = Motor(20,21,18,19)
 
+Velocity_Kp = 20
+Velocity_Ki = 30
+myMotor.set_pi(Velocity_Kp,Velocity_Ki)
+
 try:
     while True:
-        myMotor.rotate(100)
+        myMotor.rotate_close(100)
         sleep(2)
         myMotor.stop()
         sleep(2)
-        myMotor.rotate(-100)
+        myMotor.rotate_close(-100)
         sleep(2)
         myMotor.stop()
         sleep(2)
-        myMotor.rotate(50)
+        myMotor.rotate_close(50)
         sleep(2)
         myMotor.stop()
         sleep(2)
-        myMotor.rotate(-50)
+        myMotor.rotate_close(-50)
         sleep(2)
         myMotor.stop()
         sleep(2)
