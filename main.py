@@ -1,20 +1,52 @@
-#Written by GPT, to be modified
-
+#Modified
 import time
-import math
 import RPi.GPIO as GPIO
 from mpu6050 import mpu6050
+from Motor import Motor
+import numpy as np
 
 # GPIO pin setup
-MOTOR_LEFT_PWM_PIN = 17
-MOTOR_LEFT_DIR_PIN = 27
-MOTOR_RIGHT_PWM_PIN = 22
-MOTOR_RIGHT_DIR_PIN = 23
+LEFT_MOTOR_IN1 = 20
+LEFT_MOTOR_IN2 = 21
+LEFT_MOTOR_ENCODER = 13
+LEFT_MOTOR_DIRECTION = 19
+RIGHT_MOTOR_IN1 = 12
+RIGHT_MOTOR_IN2 = 16
+RIGHT_MOTOR_ENCODER = 23
+RIGHT_MOTOR_DIRECTION = 24
+LEFT_CLUTCH = 18
+RIGHT_CLUTCH = 25
+
+GPIO.setmode(GPIO.BCM)
 
 # Initialize MPU6050
-mpu = mpu6050(0x68)
+sensor = mpu6050.mpu6050(0x68)
+#Gyroscope calibration constants
+GyroX_offset = - 2.375541984732824
+GyroY_offset = - 7.537664122137405
+GyroZ_offset = - 1.764442748091603
+#Accelerometer calibration constants
+AccelX_k = 0.99873091
+AccelX_b = -0.04609702
+AccelY_k = 0.99933942
+AccelY_b = 0.00491675
+AccelZ_k = 0.96768578
+AccelZ_b = -0.02067255
 
-# PID parameters
+gyro_angle_x = 0
+gyro_angle_y = 0
+gyro_angle_z = 0
+
+# Initialize Motors
+left_motor = Motor(LEFT_MOTOR_IN1, LEFT_MOTOR_IN2, LEFT_MOTOR_ENCODER, LEFT_MOTOR_DIRECTION)
+right_motor = Motor(RIGHT_MOTOR_IN1, RIGHT_MOTOR_IN2, RIGHT_MOTOR_ENCODER, RIGHT_MOTOR_DIRECTION)
+
+# Initialize Clutches
+GPIO.setup(LEFT_CLUTCH, GPIO.OUT)
+GPIO.setup(RIGHT_CLUTCH, GPIO.OUT)
+
+
+# PID parameters, controlling straight line and turning
 Kp = 1.0
 Ki = 0.0
 Kd = 0.0
@@ -24,49 +56,34 @@ error = 0
 last_error = 0
 integral = 0
 base_speed = 200
+DELTA_T = 0.01 
 
-# GPIO setup
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(MOTOR_LEFT_PWM_PIN, GPIO.OUT)
-GPIO.setup(MOTOR_LEFT_DIR_PIN, GPIO.OUT)
-GPIO.setup(MOTOR_RIGHT_PWM_PIN, GPIO.OUT)
-GPIO.setup(MOTOR_RIGHT_DIR_PIN, GPIO.OUT)
-
-# Set up PWM channels
-pwm_motor_left = GPIO.PWM(MOTOR_LEFT_PWM_PIN, 100)  # 100 Hz
-pwm_motor_right = GPIO.PWM(MOTOR_RIGHT_PWM_PIN, 100)  # 100 Hz
-
-# Start PWM with 0% duty cycle
-pwm_motor_left.start(0)
-pwm_motor_right.start(0)
 
 def get_yaw():
-    gyro_data = mpu.get_gyro_data()
-    yaw = gyro_data['z']
+    global gyro_angle_x, gyro_angle_y, gyro_angle_z
+    accel_data = sensor.get_accel_data(g=True)
+    gyro_data = sensor.get_gyro_data()
+
+    AccX = (AccelX_k * accel_data['x'] + AccelX_b)
+    AccY = (AccelY_k * accel_data['y'] + AccelY_b)
+    AccZ = (AccelZ_k * accel_data['z'] + AccelZ_b)
+
+    GyroX = gyro_data['x'] - GyroX_offset
+    GyroY = gyro_data['y'] - GyroY_offset
+    GyroZ = gyro_data['z'] - GyroZ_offset
+
+    acc_angle_x = np.arctan2(AccY, np.sqrt(AccX**2 + AccZ**2)) * 180 / np.pi    
+    acc_angle_y = np.arctan2(AccX, np.sqrt(AccY**2 + AccZ**2)) * 180 / np.pi
+
+    gyro_angle_x += GyroX * DELTA_T 
+    gyro_angle_y += GyroY * DELTA_T 
+    gyro_angle_z += GyroZ * DELTA_T
+
+    roll = 0.96 * gyro_angle_x + 0.04 * acc_angle_x
+    pitch = 0.96 * gyro_angle_y + 0.04 * acc_angle_y
+    yaw = gyro_angle_z
     return yaw
 
-def set_motor_speed(left_speed, right_speed):
-    # Constrain speed to 0-100% for PWM
-    left_speed = max(min(left_speed, 100), -100)
-    right_speed = max(min(right_speed, 100), -100)
-
-    # Set direction for motor A
-    if left_speed >= 0:
-        GPIO.output(MOTOR_LEFT_DIR_PIN, GPIO.HIGH)
-    else:
-        GPIO.output(MOTOR_LEFT_DIR_PIN, GPIO.LOW)
-        left_speed = -left_speed  # Make speed positive for PWM
-
-    # Set direction for motor B
-    if right_speed >= 0:
-        GPIO.output(MOTOR_RIGHT_DIR_PIN, GPIO.HIGH)
-    else:
-        GPIO.output(MOTOR_RIGHT_DIR_PIN, GPIO.LOW)
-        right_speed = -right_speed  # Make speed positive for PWM
-
-    # Set PWM duty cycle
-    pwm_motor_left.ChangeDutyCycle(left_speed)
-    pwm_motor_right.ChangeDutyCycle(right_speed)
 
 def run_car(yaw, target_yaw):
     global error, last_error, integral
@@ -101,14 +118,12 @@ def main():
             print(f"Yaw: {yaw:.2f}, Target Yaw: {target_yaw}")
 
             # Sleep for a short period to simulate a control loop
-            time.sleep(0.1)
+            time.sleep(DELTA_T)
 
     except KeyboardInterrupt:
         print("Program terminated.")
     finally:
         # Clean up GPIO
-        pwm_motor_left.stop()
-        pwm_motor_right.stop()
         GPIO.cleanup()
 
 if __name__ == "__main__":

@@ -2,7 +2,6 @@
 #This library is used to control the speed and direction of the motors.
 
 import RPi.GPIO as GPIO
-import time 
 import threading
 from time import sleep
 

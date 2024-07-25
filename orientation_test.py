@@ -1,3 +1,5 @@
+#output the roll, yaw, and pitch from mpu6050 sensor
+
 from mpu6050 import mpu6050
 from time import sleep
 import numpy as np
