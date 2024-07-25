@@ -2,4 +2,4 @@
 
 ## Important Files
 - `Motor.py` control motor speed, read from encoder
-- `Control.py` control the wheel transformation, turning
+- `Transformation.py` control the wheel transformation
