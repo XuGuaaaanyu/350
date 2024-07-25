@@ -11,11 +11,11 @@ from Motor import Motor
 GPIO.setmode(GPIO.BCM)
 
 
-left_motor = Motor(20,21,13,19)
-right_motor = Motor(12,16,23,24)  #check this!!
+left_motor = Motor(20,21,23,24)
+right_motor = Motor(12,16,13,19)
 
 left_clutch = 18
-right_clutch = 25 #check this!!
+right_clutch = 26
 
 GPIO.setup(left_clutch, GPIO.OUT)
 GPIO.setup(right_clutch, GPIO.OUT)
